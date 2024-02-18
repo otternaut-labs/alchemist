@@ -63,7 +63,7 @@ defmodule Alchemist do
         # Import the relevant setup macros that represent all of
         # the various recipe actions that can be applied.
         import Alchemist.Recipe.Context, only: [repo: 1, schema: 1, schema: 2]
-        import Alchemist.Recipe.Pagination, only: [pagination: 1]
+        import Alchemist.Pagination, only: [pagination: 1]
 
         # By unquoting the passed block, it will run the macros
         # underneath and allow us to evaluate the result. This will mean

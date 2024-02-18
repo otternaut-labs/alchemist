@@ -1,4 +1,4 @@
-defmodule Alchemist.Recipe.Pagination do
+defmodule Alchemist.Pagination do
   @moduledoc false
   defmacro __using__(_opts) do
     quote do
@@ -135,7 +135,7 @@ defmodule Alchemist.Recipe.Pagination do
 
         # Import the relevant setup macros that represent all of
         # the various recipe actions that can be applied.
-        import Alchemist.Recipe.Pagination,
+        import Alchemist.Pagination,
           only: [size: 1, sort: 2, filter: 1, query: 1, range: 1]
 
         # By unquoting the passed block, it will run the macros
@@ -145,7 +145,7 @@ defmodule Alchemist.Recipe.Pagination do
 
         # Pull in the supporting functions through the wrapper for
         # alchemist. This will allow basic repo functions and more.
-        use Alchemist.Recipe.Pagination
+        use Alchemist.Pagination
       after
         :ok
       end
