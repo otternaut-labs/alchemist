@@ -96,7 +96,7 @@ defmodule Alchemist.Recipe.Context do
       @spec delete!(Ecto.Schema.t) :: Ecto.Schema.t
       def delete!(%@schema{} = schema) do
         if soft_delete_enabled?(),
-          do: @repository.update!(change(schema, deleted_at: @repository.timestamp(:now))),
+          do: @repository.update!(change(schema, deleted_at: soft_delete_timestamp!(:now))),
         else: @repository.delete!(schema)
       end
       def delete!(_) do
@@ -105,12 +105,32 @@ defmodule Alchemist.Recipe.Context do
 
       defoverridable find!: 1, save!: 2, delete!: 1
 
-      # Private Methods
+      # Soft Delete Helpers
       #
+      # The following functions are methods that will allow us to handle
+      # soft deletes internally in this context. This will make sure that
+      # that when performing deletes, it will set the correct type of timestamp.
 
       @spec soft_delete_enabled? :: Boolean.t
       defp soft_delete_enabled? do
         not is_nil(Keyword.get(@schema_opts, :soft_delete, nil))
+      end
+
+      @spec soft_delete_timestamp!(Atom.t) :: NaiveDateTime.t | DateTime.t
+      defp soft_delete_timestamp!(:now) do
+        case @schema.__schema__(:type, Keyword.get(@schema_opts, :soft_delete)) do
+          :naive_datetime ->
+            DateTime.to_naive(DateTime.utc_now()) |> NaiveDateTime.truncate(:second)
+          :utc_datetime ->
+            DateTime.utc_now()
+          # Cant detect field type, so we will raise an exception saying that
+          # we are unable to determine the type.
+          _ ->
+            raise RuntimeError, message: "Failed to determine the field type to generate timestamps."
+        end
+      end
+      defp soft_delete_timestamp!(_) do
+        raise ArgumentError, message: "Invalid definition parameters passed to timestamp/1."
       end
     end
   end
