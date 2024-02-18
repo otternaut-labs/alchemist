@@ -1,5 +1,33 @@
 defmodule Alchemist do
-  @moduledoc false
+  @moduledoc ~S"""
+  The Alchemist module provides additional functionality extensions to Ecto.
+
+  The definition of Alchemist functionality is possible through the `setup/0`
+  api. The default implementation will inject repository methods into the
+  inheriting context.
+
+  `setup/0` requires at minimum a `repo` and `schema` option to allow for all
+  of the various recipes (context, pagination) to work successfully. The additional
+  `pagination` macro will further inject pagination ability into the context.
+
+  ## Example
+
+      defmodule ExampleContext do
+        use Alchemist
+
+        setup do
+          repo MyApp.Repo
+          schema MyApp.Schema, soft_delete: :deleted_at
+          pagination do
+            size default: 20, max: 100
+            sort on: [:column], default: :column
+            filter on: [:column]
+            query on: [:column]
+            range on: [:inserted_at]
+          end
+        end
+      end
+  """
   defmacro __using__(_) do
     quote do
       import Alchemist, only: [setup: 1]
@@ -7,15 +35,26 @@ defmodule Alchemist do
   end
 
   @doc """
-  This wrapper is a macro for instantiation of this module. This will
-  allow us to configure and setup individual contexts with added
-  syntactic sugar and methods.
+  Defines an alchemist context with the given options.
 
-  ## Usage
-  setup do
-    repo ...
-    schema ...
-  end
+  A context is essentially a helper that will allow additional
+  repository functionality to be injected in dynamically through
+  the __using__ macro.
+
+  Since this macro is a standalone, and error will be thrown if
+  the required options are not setup.
+
+  ## Required Options
+
+      * `repo` - Sets the repository attribute to use when extending functionality.
+      * `schema` - Sets the schema attribute, and allows for additional options like
+          soft delete to automatically be used.
+
+  **Notes:**
+
+      * If no pagination macro is part of the setup options, then no pagination
+        functionality will be included in the context. See Alchemist.Pagination
+        for more information.
   """
   @spec setup(any()) :: none()
   defmacro setup(do: block) do
