@@ -62,7 +62,7 @@ defmodule Alchemist do
       try do
         # Import the relevant setup macros that represent all of
         # the various recipe actions that can be applied.
-        import Alchemist.Recipe.Context, only: [repo: 1, schema: 1, schema: 2]
+        import Alchemist.Context, only: [repo: 1, schema: 1, schema: 2]
         import Alchemist.Pagination, only: [pagination: 1]
 
         # By unquoting the passed block, it will run the macros
@@ -80,7 +80,7 @@ defmodule Alchemist do
 
         # Pull in the supporting functions through the wrapper for
         # alchemist. This will allow basic repo functions and more.
-        use Alchemist.Recipe.Context
+        use Alchemist.Context
       after
         :ok
       end
