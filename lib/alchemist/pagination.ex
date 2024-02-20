@@ -136,7 +136,7 @@ defmodule Alchemist.Pagination do
         # Import the relevant setup macros that represent all of
         # the various recipe actions that can be applied.
         import Alchemist.Pagination,
-          only: [size: 1, sort: 2, filter: 1, query: 1, range: 1]
+          only: [size: 1, sort: 1, filter: 1, query: 1, range: 1]
 
         # By unquoting the passed block, it will run the macros
         # underneath and allow us to evaluate the result. This will mean
@@ -192,16 +192,16 @@ defmodule Alchemist.Pagination do
   on: list(Atom.t) - a list of columns that are allowed for sorting.
 
   ## Usage
-  sort :"-my_column", on: [:my_column]
+  sort on: [:my_column], default: :my_column
   """
-  @spec sort(Atom.t, Keyword.t) :: none
-  defmacro sort(default, opts \\ []) do
+  @spec sort(Keyword.t) :: none
+  defmacro sort(opts \\ []) do
     quote do
       Module.put_attribute(__MODULE__, :__pagination__, Keyword.merge(
         Module.get_attribute(__MODULE__, :__pagination__), [
           sort: [
             # Sets the default sort column and direction
-            default: unquote(default) || nil,
+            default: Keyword.get(unquote(opts), :default, nil)
             # Sets the columns allowed for sorting.
             on: Keyword.get(unquote(opts), :on, [])
           ]
