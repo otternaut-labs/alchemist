@@ -201,7 +201,7 @@ defmodule Alchemist.Pagination do
         Module.get_attribute(__MODULE__, :__pagination__), [
           sort: [
             # Sets the default sort column and direction
-            default: Keyword.get(unquote(opts), :default, nil)
+            default: Keyword.get(unquote(opts), :default, nil),
             # Sets the columns allowed for sorting.
             on: Keyword.get(unquote(opts), :on, [])
           ]
