@@ -154,7 +154,7 @@ defmodule Alchemist.Context do
         end
       end
 
-      defoverridable all: 0, find: 1, find!: 1, save: 2, save!: 2, delete: 1, delete!: 1
+      defoverridable all: 0, get: 1, get!: 1, save: 2, save!: 2, delete: 1, delete!: 1
 
       # Soft Delete Helpers
       #
