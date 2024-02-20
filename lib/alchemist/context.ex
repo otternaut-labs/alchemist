@@ -6,15 +6,18 @@ defmodule Alchemist.Context do
       import Ecto.Changeset, only: [change: 2]
 
       @doc """
-      Return all records in the database for the inheriting context. This will
-      also apply soft delete logic to make sure nothing is bunk.
+      Fetches all entries from the data store matching the given query.
 
-      ## Examples
-      iex> all()
-      [%Schema{}...]
+      If soft delete is enabled, it will filter the result set based on
+      whether or not the record has the column populated for the soft delete;
+      and if so, omit it from the resultset.
+
+      ## Example
+
+          Context.all()
       """
-      @spec all!() :: list(@schema.t)
-      def all!() do
+      @spec all() :: list(@schema.t)
+      def all() do
         # Execute the query with digesting the default criteria.
         query = from(s in @schema)
 
@@ -26,19 +29,20 @@ defmodule Alchemist.Context do
 
         @repository.all(query)
       end
-      def all!(_) do
+      def all(_) do
         raise ArgumentError, message: "Invalid definition parameters passed to all!/0."
       end
 
       @doc """
-      Find the record associated with the passed id.
+      Fetches a single struct from the data store where the primary key matches the
+      given id. If soft delete is enabled, it will ignore records that are soft deleted.
 
-      ## Examples
-      iex> find!(1)
-      Ecto.Schema.t | nil
+      ## Example
+
+          Context.get(42)
       """
-      @spec find!(Number.t) :: Ecto.Schema.t
-      def find!(id) when is_integer(id) or is_binary(id) do
+      @spec get(Number.t) :: Ecto.Schema.t | nil
+      def get(id) when is_integer(id) or is_binary(id) do
         # Execute the query with digesting the default criteria.
         query = from(s in @schema) |> where([s], s.id == ^id)
 
@@ -50,60 +54,114 @@ defmodule Alchemist.Context do
 
         @repository.one(query)
       end
-      def find!(nil), do: nil
-      def find!(_) do
-        raise ArgumentError, message: "Invalid definition parameters passed to find!/1."
+      def get(nil), do: nil
+      def get(_) do
+        raise ArgumentError, message: "Invalid definition parameters passed to get/1."
       end
 
       @doc """
-      Based on the passed method parameters, we want to go ahead and
-      issue an insert or an update depending on if the schema exists or not
-      already.
+      Similar to `c:get/1` but raises `Ecto.NoResultsError` if no record was found.
 
-      ## Examples
-      iex> save!(nil, attrs)
-      new_schema
+      ## Example
 
-      iex> save!(schema, attrs)
-      updated_schema
+          Context.get!(42)
       """
-      @spec save!(Ecto.Schema.t, Map.t) :: Ecto.Schema.t
-      def save!(_, attrs) when not is_map(attrs) do
+      def get!(id) do
+        case get(id) do
+          result -> result
+          nil -> raise Ecto.NoResultsError
+        end
+      end
+
+      @doc """
+      Depending on if an existing struct is passed, this method will encapsulate
+      the update and insert methods to provide a single consolidated method.
+
+      ## Example
+
+        Context.save(existing_schema, attrs)
+
+        Context.save(nil, attrs)
+      """
+      @spec save(Ecto.Schema.t | nil, Map.t) :: Ecto.Schema.t
+      def save(_, attrs) when not is_map(attrs) do
         raise ArgumentError, message: "Invalid definition parameters passed to save!/2."
       end
-      def save!(nil, attrs) do
+      def save(nil, attrs) do
         with %Ecto.Changeset{valid?: true} = changeset <- @schema.changeset(%@schema{}, attrs),
-             created_schema <- @repository.insert!(changeset) do
-          created_schema
+             {:ok, created_schema} <- @repository.insert(changeset) do
+          {:ok, created_schema}
         end
       end
-      def save!(%@schema{} = existing, attrs) do
+      def save(%@schema{} = existing, attrs) do
         with %Ecto.Changeset{valid?: true} = changeset <- @schema.changeset(existing, attrs),
-             updated_schema <- @repository.update!(changeset) do
-          updated_schema
+             {:ok, updated_schema} <- @repository.update(changeset) do
+          {:ok, updated_schema}
         end
       end
 
       @doc """
-      Based on the macro settings, as well as the passed schema; issue a delete
-      request for the record (soft or hard) so that the schema is no longer
-      active or available.
+      Similar to `c:save/2` but raises `Ecto.InvalidChangesetError` if the update
+      or create mechanism fails.
 
-      ## Examples
-      iex> delete!(schema)
-      :ok
+      ## Example
+
+          Context.save!(existing_schema, attrs)
+
+          Context.save!(nil, attrs)
       """
-      @spec delete!(Ecto.Schema.t) :: Ecto.Schema.t
-      def delete!(%@schema{} = schema) do
-        if soft_delete_enabled?(),
-          do: @repository.update!(change(schema, deleted_at: soft_delete_timestamp!(:now))),
-        else: @repository.delete!(schema)
+      @spec save!(Ecto.Schema.t | nil, Map.t) :: Ecto.Schema.t
+      def save!(schema, attrs) do
+        case save(schema, attrs) do
+          {:ok, schema} -> schema
+          %Ecto.Changeset{valid?: false} -> raise Ecto.InvalidChangesetError
+          {:error, _} -> raise Ecto.InvalidChangesetError
+        end
       end
-      def delete!(_) do
+
+      @doc """
+      Depending on whether or not this context is set in soft delete mode
+      or not, it will issue either an update or delete appropriately to handle
+      the delete mechanism.
+
+      ## Example
+
+          Context.delete(schema)
+      """
+      @spec delete(Ecto.Schema.t) :: Ecto.Schema.t
+      def delete(%@schema{} = schema) do
+        if soft_delete_enabled?(),
+          do: @repository.update(change(schema, deleted_at: soft_delete_timestamp!(:now))),
+        else: @repository.delete(schema)
+      end
+      def delete(_) do
         raise ArgumentError, message: "Invalid definition parameters passed to delete!/1."
       end
 
-      defoverridable find!: 1, save!: 2, delete!: 1
+      @doc """
+      Similar to `c:delete/1` but raises `Ecto.InvalidChangesetError` if the delete
+      mechanism fails.
+
+      ## Example
+
+          Context.delete!(schema)
+      """
+      @spec delete!(Ecto.Schema.t) :: Ecto.Schema.t
+      def delete!(schema) do
+        case delete(schema) do
+          {:ok, schema} -> schema
+          {:error, _} -> raise Ecto.InvalidChangesetError
+        end
+      end
+
+      defoverridable
+        all: 0,
+        find: 1,
+        find!: 1,
+        save: 2,
+        save!: 2,
+        delete: 1,
+        delete!: 1
 
       # Soft Delete Helpers
       #
@@ -136,12 +194,10 @@ defmodule Alchemist.Context do
   end
 
   @doc """
-  This macro will allow us to handle and setup any options required
-  for instantiation of this recipe. Specifically, this will instantiate
-  the repo wrapper.
+  Defines the repository to use for all context actions.
 
-  ## Usage
-  repo MyApplication.Repo
+  By default this module will inherit all functionality
+  and options of the repository based on its initial setup.
   """
   @spec repo(Ecto.Repo.t) :: none
   defmacro repo(repo) do
@@ -151,12 +207,10 @@ defmodule Alchemist.Context do
   end
 
   @doc """
-  This macro will allow us to handle and setup any options required
-  for instantiation of this recipe. Specifically, this will instantiate
-  the repo wrapper.
+  Defines the schema to use for all context actions.
 
-  ## Usage
-  schema MyApplication.Schema, soft_delete?: true
+  By default usage, any and all options set in the schema
+  will be applied to actions in this module context.
   """
   @spec schema(Ecto.Schema.t, Keyword.t) :: none
   defmacro schema(schema, opts \\ []) do
