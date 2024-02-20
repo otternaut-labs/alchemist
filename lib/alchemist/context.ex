@@ -68,8 +68,8 @@ defmodule Alchemist.Context do
       """
       def get!(id) do
         case get(id) do
-          result -> result
           nil -> raise Ecto.NoResultsError
+          result -> result
         end
       end
 
