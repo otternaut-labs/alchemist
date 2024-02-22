@@ -38,12 +38,17 @@ defmodule Alchemist.Context do
       If soft delete is enabled, this filter will automatically be applied
       directly.
 
+      ## Options
+
+          * `:include_deleted?` - Override the soft deleted option and include all results.
+
       ## Example
 
-          Context.all_by([my: :filter])
+          Context.all_by([my: :filter], opts)
       """
       @spec all_by(Keyword.t, Keyword.t) :: list(Ecto.Schema.t)
-      def all_by(filters, opts \\ []) when is_list(filters) or is_map(filters) do
+      def all_by(filters, opts \\ [])
+      def all_by(filters, opts) when is_list(filters) or is_map(filters) do
         query = from(s in @schema)
 
         # If this is a soft deleted schema, then we want to go ahead and apply
