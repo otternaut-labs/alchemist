@@ -5,6 +5,8 @@ defmodule Alchemist.Context do
       import Ecto.Query, warn: false
       import Ecto.Changeset, only: [change: 2]
 
+      alias Alchemist.Query
+
       @doc """
       Fetches all entries from the data store matching the given query.
 
@@ -18,7 +20,6 @@ defmodule Alchemist.Context do
       """
       @spec all() :: list(@schema.t)
       def all() do
-        # Execute the query with digesting the default criteria.
         query = from(s in @schema)
 
         # If this is a soft deleted schema, then we want to go ahead and apply
@@ -29,8 +30,35 @@ defmodule Alchemist.Context do
 
         @repository.all(query)
       end
-      def all(_) do
-        raise ArgumentError, message: "Invalid definition parameters passed to all!/0."
+
+      @doc """
+      Fetches all entries from the data store filtered by the passed filters
+      in either a map or keyword list.
+
+      If soft delete is enabled, this filter will automatically be applied
+      directly.
+
+      ## Example
+
+          Context.all_by([my: :filter])
+      """
+      @spec all_by(Keyword.t) :: list(Ecto.Schema.t)
+      def all_by(filters) when is_list(filters) or is_map(filters) do
+        query = from(s in @schema)
+
+        # If this is a soft deleted schema, then we want to go ahead and apply
+        # the filter automatically so dead data isnt returned.
+        query = if soft_delete_enabled?(),
+          do: where(query, [s], is_nil(field(s, ^Keyword.get(@schema_opts, :soft_delete)))),
+        else: query
+
+        # For each filter append the appropriate where clause.
+        query = Query.where(query, filters)
+
+        @repository.all(query)
+      end
+      def all_by(_) do
+        raise ArgumentError, message: "Invalid definition parameters passed to all_by/1."
       end
 
       @doc """
@@ -154,7 +182,13 @@ defmodule Alchemist.Context do
         end
       end
 
-      defoverridable all: 0, get: 1, get!: 1, save: 2, save!: 2, delete: 1, delete!: 1
+      # Overridable Functions
+      #
+      # All of the root functions (non error raising) are allowed to be overriden.
+      # The reason for this is that we want to force logic into the root definitions
+      # rather than have the raising definitions (which are just passthroughs).
+
+      defoverridable all: 0, all_by: 1, get: 1, save: 2, delete: 1
 
       # Soft Delete Helpers
       #

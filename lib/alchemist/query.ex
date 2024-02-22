@@ -1,4 +1,4 @@
-defmodule Alchemist.Pagination.QueryBuilder do
+defmodule Alchemist.Query do
   @moduledoc false
   import Ecto.Query, warn: false
 
@@ -86,7 +86,8 @@ defmodule Alchemist.Pagination.QueryBuilder do
   Ecto.Query.t
   """
   @spec where(Ecto.Query.t, Map.t) :: Ecto.Query.t
-  def where(query, filters) when map_size(filters) < 1, do: query
+  def where(query, filters) when is_map(filters) and map_size(filters) < 1, do: query
+  def where(query, filters) when is_list(filters) and length(filters) < 1, do: query
   def where(query, filters) do
     Enum.reduce(filters, query, fn {field, criteria}, acc ->
       column = if is_atom(field), do: field, else: String.to_atom(field)

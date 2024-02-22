@@ -3,7 +3,8 @@ defmodule Alchemist.Pagination do
   defmacro __using__(_opts) do
     quote do
       import Ecto.Query, warn: false
-      alias Alchemist.Pagination.{Page, Criteria, QueryBuilder}
+      alias Alchemist.Query
+      alias Alchemist.Pagination.{Page, Criteria}
 
       @doc """
       Depending on the passed parameters, we want to go ahead and return a list of
@@ -28,12 +29,12 @@ defmodule Alchemist.Pagination do
         # Apply filters, sorting, etc.
         query =
           query
-          |> QueryBuilder.query(criteria.query, Keyword.get(__pagination__(:query), :on, []))
-          |> QueryBuilder.range(Map.take(
+          |> Query.query(criteria.query, Keyword.get(__pagination__(:query), :on, []))
+          |> Query.range(Map.take(
                criteria.__request__,
                Enum.map(Keyword.get(__pagination__(:range), :on, []), &Atom.to_string/1)
              ))
-          |> QueryBuilder.where(Map.take(
+          |> Query.where(Map.take(
                criteria.__request__,
                Enum.map(Keyword.get(__pagination__(:filter), :on, []), &Atom.to_string/1)
              ))
@@ -41,9 +42,9 @@ defmodule Alchemist.Pagination do
         # Setup the paginated query with limit and offset.
         paginated_query =
           query
-          |> QueryBuilder.limit(criteria.size)
-          |> QueryBuilder.offset((criteria.page - 1) * criteria.size)
-          |> QueryBuilder.order_by(criteria.sort_by)
+          |> Query.limit(criteria.size)
+          |> Query.offset((criteria.page - 1) * criteria.size)
+          |> Query.order_by(criteria.sort_by)
 
         %Page{
           _links: %{
