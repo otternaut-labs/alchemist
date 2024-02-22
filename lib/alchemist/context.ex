@@ -102,6 +102,51 @@ defmodule Alchemist.Context do
       end
 
       @doc """
+      Fetches a single struct from the data store where the criteria filters
+      passed are matched. If no result is found, returns nil.
+
+      ## Example
+
+          Context.get_by(%{"my_filter" => "value"})
+
+          Context.get_by([my_filter: "value"])
+      """
+      @spec get_by(Keyword.t) :: Ecto.Schema.t | nil
+      def get_by(filters) when is_list(filters) or is_map(filters) do
+        query = from(s in @schema)
+
+        # If this is a soft deleted schema, then we want to go ahead and apply
+        # the filter automatically so dead data isnt returned.
+        query = if soft_delete_enabled?(),
+          do: where(query, [s], is_nil(field(s, ^Keyword.get(@schema_opts, :soft_delete)))),
+        else: query
+
+        # For each filter append the appropriate where clause.
+        query = Query.where(query, filters)
+
+        @repository.one(query)
+      end
+      def get_by(_) do
+        raise ArgumentError, message: "Invalid definition parameters passed to get_by/1."
+      end
+
+      @doc """
+      Similar to `c:get_by/1` but raises `Ecto.NoResultsError` if no record was found.
+
+      ## Example
+
+          Context.get_by!(%{"my_filter" => "value"})
+
+          Context.get_by!([my_filter: "value"])
+      """
+      def get_by!(filters) do
+        case get_by(filters) do
+          nil -> raise Ecto.NoResultsError
+          result -> result
+        end
+      end
+
+      @doc """
       Depending on if an existing struct is passed, this method will encapsulate
       the update and insert methods to provide a single consolidated method.
 
@@ -188,7 +233,7 @@ defmodule Alchemist.Context do
       # The reason for this is that we want to force logic into the root definitions
       # rather than have the raising definitions (which are just passthroughs).
 
-      defoverridable all: 0, all_by: 1, get: 1, save: 2, delete: 1
+      defoverridable all: 0, all_by: 1, get: 1, get_by: 1, save: 2, delete: 1
 
       # Soft Delete Helpers
       #
