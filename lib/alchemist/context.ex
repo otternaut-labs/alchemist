@@ -42,13 +42,13 @@ defmodule Alchemist.Context do
 
           Context.all_by([my: :filter])
       """
-      @spec all_by(Keyword.t) :: list(Ecto.Schema.t)
-      def all_by(filters) when is_list(filters) or is_map(filters) do
+      @spec all_by(Keyword.t, Kayword.t) :: list(Ecto.Schema.t)
+      def all_by(filters, opts \\ []) when is_list(filters) or is_map(filters) do
         query = from(s in @schema)
 
         # If this is a soft deleted schema, then we want to go ahead and apply
         # the filter automatically so dead data isnt returned.
-        query = if soft_delete_enabled?(),
+        query = if soft_delete_enabled?() and Keyword.get(opts, :include_deleted?, false),
           do: where(query, [s], is_nil(field(s, ^Keyword.get(@schema_opts, :soft_delete)))),
         else: query
 
