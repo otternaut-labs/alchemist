@@ -233,7 +233,7 @@ defmodule Alchemist.Context do
       # The reason for this is that we want to force logic into the root definitions
       # rather than have the raising definitions (which are just passthroughs).
 
-      defoverridable all: 0, all_by: 1, get: 1, get_by: 1, save: 2, delete: 1
+      defoverridable all: 0, all_by: 2, get: 1, get_by: 1, save: 2, delete: 1
 
       # Soft Delete Helpers
       #
