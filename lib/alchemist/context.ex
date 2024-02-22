@@ -42,7 +42,7 @@ defmodule Alchemist.Context do
 
           Context.all_by([my: :filter])
       """
-      @spec all_by(Keyword.t, Kayword.t) :: list(Ecto.Schema.t)
+      @spec all_by(Keyword.t, Keyword.t) :: list(Ecto.Schema.t)
       def all_by(filters, opts \\ []) when is_list(filters) or is_map(filters) do
         query = from(s in @schema)
 
@@ -57,7 +57,7 @@ defmodule Alchemist.Context do
 
         @repository.all(query)
       end
-      def all_by(_) do
+      def all_by(_, _) do
         raise ArgumentError, message: "Invalid definition parameters passed to all_by/1."
       end
 
